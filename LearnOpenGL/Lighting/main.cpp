@@ -13,6 +13,8 @@
 #include"LearnGL/Shader.h"
 #include "LearnGL/Camera.h"
 #include "LearnGL\model.h"
+
+#include"LearnGL/light_object.h"
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -63,8 +65,12 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 
-	Model model("../resources/objects/nanosuit/nanosuit.obj");
+	//Model model("../resources/objects/nanosuit/nanosuit.obj");
 	Shader ourShader("../Shader/nanosuit.vs", "../Shader/nanosuit.frag");
+	
+	Shader lightObjectShader("../Shader/light_object.vs", "../Shader/light_object.frag");
+	Material m;
+	DirectionLight dLight(glm::vec3(0.0f,0.0f,-5.0f),glm::vec3(0.0f, 0.0f, 1.0f), m);
 	// Define the viewport dimensions
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -75,6 +81,7 @@ int main()
 	{
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
+		Do_Movement();
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
@@ -82,18 +89,30 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
+		
+		
+
 		ourShader.Use();
 		glm::mat4 projectionMat = glm::perspective(glm::radians(camera.Zoom), (float)width / (float)height, 0.1f, 100.0f);
 		glm::mat4 viewMat =  camera.GetViewMatrix();
 		glm::mat4 modelMat = glm::mat4(1.0f);		
-		modelMat = glm::scale(modelMat,glm::vec3(0.1));
-		modelMat = glm::translate(modelMat, glm::vec3(0, -5, -5));
+		modelMat = glm::scale(modelMat,glm::vec3(1.0f));
+		modelMat = glm::translate(modelMat, glm::vec3(0, 0, 0));
 
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "projection"), 1, GL_FALSE,glm::value_ptr(projectionMat));
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
 
-		model.Draw(ourShader);		
+		modelMat = glm::mat4(1.0f);				
+		modelMat = glm::scale(modelMat, glm::vec3(0.2f));
+		modelMat = glm::rotate(modelMat, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
+		lightObjectShader.Use();
+		glUniformMatrix4fv(glGetUniformLocation(lightObjectShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectionMat));
+		glUniformMatrix4fv(glGetUniformLocation(lightObjectShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
+		glUniformMatrix4fv(glGetUniformLocation(lightObjectShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));		
+		
+		dLight.Draw(lightObjectShader);
+		//model.Draw(ourShader);		
 
 		glfwSwapBuffers(window);
 	}	

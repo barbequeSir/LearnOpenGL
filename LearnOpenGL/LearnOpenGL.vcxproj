@@ -121,9 +121,6 @@
   <ItemGroup>
     <ClCompile Include="hellowindow.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Camera.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
