@@ -7,5 +7,5 @@ in vec3 Normal;
 uniform sampler2D ourTexture;
 void main()
 {   
-    color = vec4(vec3(0.5),1.0);
+    color = texture(ourTexture,TexCoord);
 }

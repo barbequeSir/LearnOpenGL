@@ -15,33 +15,27 @@
 #include "LearnGL\model.h"
 
 #include"LearnGL/light_object.h"
-// Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void Do_Movement();
-// Window dimensions
 
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
 const GLuint WIDTH = 800, HEIGHT = 600;
 Camera camera(glm::vec3(0.0f, 0.0f, 2.0f));
-float deltaTime = 0.0f;	// time between current frame and last frame
+float deltaTime = 0.0f;	
 float lastFrame = 0.0f;
-// The MAIN function, from here we start the application and run the game loop
 int main()
 {
-	std::cout << "Starting GLFW context, OpenGL 3.3" << std::endl;
-	// Init GLFW
-	glfwInit();
-	// Set all the required options for GLFW
+	std::cout << "Starting GLFW context, OpenGL 3.3" << std::endl;	
+	glfwInit();	
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
-	// Create a GLFWwindow object that we can use for GLFW's functions
+	
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
 	if (window == nullptr)
 	{
@@ -49,14 +43,11 @@ int main()
 		glfwTerminate();
 		return -1;
 	}
-	glfwMakeContextCurrent(window);
-	// Set the required callback functions
+	glfwMakeContextCurrent(window);	
 	glfwSetKeyCallback(window, key_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
-	glfwSetScrollCallback(window, scroll_callback);
-	// Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
-	glewExperimental = GL_TRUE;
-	// Initialize GLEW to setup the OpenGL Function pointers
+	//glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);	
+	glewExperimental = GL_TRUE;	
 	if (glewInit() != GLEW_OK)
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
@@ -67,16 +58,42 @@ int main()
 
 	//Model model("../resources/objects/nanosuit/nanosuit.obj");
 	Shader ourShader("../Shader/nanosuit.vs", "../Shader/nanosuit.frag");
-	
-	Shader lightObjectShader("../Shader/light_object.vs", "../Shader/light_object.frag");
-	Material m;
-	DirectionLight dLight(glm::vec3(0.0f,0.0f,-5.0f),glm::vec3(0.0f, 0.0f, 1.0f), m);
-	// Define the viewport dimensions
+	Shader floorShader("../Shader/floor.vs", "../Shader/floor.frag");
+	GLfloat floorVertexs[] = {
+		//0.5f, 0.5f, 0.0f,   // 右上角
+		//0.5f, -0.5f, 0.0f,  // 右下角
+		//-0.5f, -0.5f, 0.0f, // 左下角
+		//-0.5f, 0.5f, 0.0f   // 左上角
+		-1.0f,-0.5f,1.0f,
+		1.0f,-0.5f,1.0f,
+		1.0f,-0.5f,-1.0f,
+		-1.0f,-0.5f,-1.0f
+	};
+
+	GLuint floorIndex[] = {
+		//0, 1, 3, // 第一个三角形
+		//1, 2, 3  // 第二个三角形
+		0,1,3,
+		1,2,3
+	};
+
+	GLuint eboFloor,eboScreen, vboFloor, vboScreen, vaoFloor, vaoScreen;
+	glGenVertexArrays(1, &vaoFloor);
+	glBindVertexArray(vaoFloor);
+	glGenBuffers(1, &vboFloor);
+	glBindBuffer(GL_ARRAY_BUFFER, vboFloor);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertexs),floorVertexs, GL_STATIC_DRAW);	
+	glGenBuffers(1, &eboFloor);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboFloor);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floorIndex), floorIndex, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);	
+	glBindVertexArray(0);
+		
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 	
-	// Game loop
 	while (!glfwWindowShouldClose(window))
 	{
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
@@ -88,32 +105,25 @@ int main()
 		
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		
-		
-
-		ourShader.Use();
+		glEnable(GL_DEPTH_TEST);		
 		glm::mat4 projectionMat = glm::perspective(glm::radians(camera.Zoom), (float)width / (float)height, 0.1f, 100.0f);
-		glm::mat4 viewMat =  camera.GetViewMatrix();
-		glm::mat4 modelMat = glm::mat4(1.0f);		
-		modelMat = glm::scale(modelMat,glm::vec3(1.0f));
-		modelMat = glm::translate(modelMat, glm::vec3(0, 0, 0));
-
-		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "projection"), 1, GL_FALSE,glm::value_ptr(projectionMat));
+		glm::mat4 viewMat = camera.GetViewMatrix();
+		glm::mat4 modelMat = glm::mat4(1.0f);
+		modelMat = glm::scale(modelMat, glm::vec3(0.20f));
+		modelMat = glm::translate(modelMat, glm::vec3(0.0f, -1.0f, -50.0f));
+		/*ourShader.Use();
+		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectionMat));
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
-		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
-
-		modelMat = glm::mat4(1.0f);				
-		modelMat = glm::scale(modelMat, glm::vec3(0.2f));
-		modelMat = glm::rotate(modelMat, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
-		lightObjectShader.Use();
-		glUniformMatrix4fv(glGetUniformLocation(lightObjectShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectionMat));
-		glUniformMatrix4fv(glGetUniformLocation(lightObjectShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
-		glUniformMatrix4fv(glGetUniformLocation(lightObjectShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));		
-		
-		dLight.Draw(lightObjectShader);
-		//model.Draw(ourShader);		
-
+		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));*/		
+		//model.Draw(ourShader);
+		floorShader.Use();
+		modelMat = glm::mat4(1.0f);
+		glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectionMat));
+		glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
+		glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
+		glBindVertexArray(vaoFloor);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 		glfwSwapBuffers(window);
 	}	
 	glfwTerminate();

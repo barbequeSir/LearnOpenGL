@@ -117,10 +117,10 @@ public:
 		glBufferData(GL_ARRAY_BUFFER, vertexs.size() * sizeof(Vertex_PV), &vertexs[0], GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PV), (void*)(0));
-		//glEnableVertexAttribArray(1);
-		//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PV), (void*)(offsetof(Vertex_PV, Normal)));
-		//glEnableVertexAttribArray(2);
-		//glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PV), (void*)(offsetof(Vertex_PV, TexCoords)));
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PV), (void*)(offsetof(Vertex_PV, Normal)));
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PV), (void*)(offsetof(Vertex_PV, TexCoords)));
 	}
 	
 	void Draw(Shader program)
