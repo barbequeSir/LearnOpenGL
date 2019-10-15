@@ -12,6 +12,7 @@
 
 #include "LearnGL/Camera.h"
 #include "LearnGL/Shader.h"
+#include "LearnGL/Primitive.h"
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -167,7 +168,7 @@ GLuint loadCubeTexture()
 }
 Shader skyboxShader;
 Shader diffuseShader;
-GLfloat cubeVertices[] = {
+vector<GLfloat> cubeVertices = {
 	// Positions          // Texture Coords
 	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 	0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -211,7 +212,7 @@ GLfloat cubeVertices[] = {
 	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
 	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 };
-GLfloat skyboxVertices[] = {
+vector<GLfloat> skyboxVertices = {
 	// Positions          
 	-1.0f,  1.0f, -1.0f,
 	-1.0f, -1.0f, -1.0f,
@@ -265,25 +266,8 @@ void Init()
 
 	texture = loadTexture("../LearnOpenGL/resources/textures/bricks2.jpg");
 	cubeTexture = loadCubeTexture();
-	glGenVertexArrays(1, &cubeVAO);
-	glBindVertexArray(cubeVAO);
-	glGenBuffers(1, &cubeVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glBindVertexArray(0);	
-
-	glGenVertexArrays(1, &SkyBoxVAO);
-	glBindVertexArray(SkyBoxVAO);
-	glGenBuffers(1, &SkyBoxVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, SkyBoxVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-	glBindVertexArray(0);
+	cubeVAO = Primitive::CubeP3N3(cubeVertices);
+	SkyBoxVAO = Primitive::CubeP3(skyboxVertices);	
 }
 
 void Render()
@@ -298,10 +282,8 @@ void Render()
 	glDepthMask(GL_FALSE);
 	skyboxShader.Use();
 	glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectionMat));
-	glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
-	//glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
-	glUniform1i(glGetUniformLocation(diffuseShader.Program, "Tex"), 0);
-	glActiveTexture(0);
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));	
+	glUniform1i(glGetUniformLocation(skyboxShader.Program, "Tex"), 0);	
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTexture);
 	glBindVertexArray(SkyBoxVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -309,14 +291,14 @@ void Render()
 
 	glDepthMask(GL_TRUE);
 	viewMat = camera.GetViewMatrix();
-	modelMat = glm::scale(modelMat, glm::vec3(0.1));
+	modelMat = glm::scale(modelMat, glm::vec3(0.5));
 	diffuseShader.Use();
 	glUniformMatrix4fv(glGetUniformLocation(diffuseShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectionMat));
 	glUniformMatrix4fv(glGetUniformLocation(diffuseShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
 	glUniformMatrix4fv(glGetUniformLocation(diffuseShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));	
 	glUniform1i(glGetUniformLocation(diffuseShader.Program, "Tex"), 0);
 	glUniform3f(glGetUniformLocation(diffuseShader.Program, "CamPos"), camera.Position.x, camera.Position.y, camera.Position.z);
-	glActiveTexture(0);
+	
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTexture);
 
 	glBindVertexArray(cubeVAO);	

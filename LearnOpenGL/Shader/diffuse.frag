@@ -12,5 +12,6 @@ void main()
 	vec3 normal = normalize(Normal);
 	vec3 dir = reflect(viewDir,normal);
 
-    color = texture(Tex,dir);
+	//vec3 dir2 = refract(viewDir,normal,1.5);折射
+    color = texture(Tex,dir1);
 }
