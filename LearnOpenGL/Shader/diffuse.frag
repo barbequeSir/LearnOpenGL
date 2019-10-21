@@ -13,5 +13,5 @@ void main()
 	vec3 dir = reflect(viewDir,normal);
 
 	//vec3 dir2 = refract(viewDir,normal,1.5);折射
-    color = texture(Tex,dir1);
+    color = texture(Tex,dir);
 }
