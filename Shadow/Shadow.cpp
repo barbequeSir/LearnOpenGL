@@ -18,6 +18,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void Do_Movement();
+void RenderScene(Shader & shader);
 GLuint loadTexture(GLchar* path, GLboolean alpha = false);
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
@@ -120,6 +121,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(yoffset);
 }
+
 vector<GLfloat> floorVertexs = {
 	25.0f, -0.5f, 25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
 	-25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,
@@ -229,8 +231,10 @@ GLuint loadCubeTexture()
 
 GLuint tex_diff;
 GLuint floorVao, cubeVao;
-Shader floorShader, cubeShader,defaultCubeShader;
+GLuint fbo,depthTex;
+Shader floorShader, cubeShader,defaultCubeShader,shadowShader;
 Primitive::Cube CubeObj;
+GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 void Init()
 {	
 	tex_diff = loadTexture("../LearnOpenGL/resources/textures/bricks2.jpg");
@@ -239,46 +243,94 @@ void Init()
 	floorShader = Shader("./Shader/floor.vs", "./Shader/floor.frag");
 	cubeShader = Shader("./Shader/cube.vs", "./Shader/cube.frag");
 	defaultCubeShader = Shader("../LearnOpenGL/Shader/cubeP3N3T2.vs", "../LearnOpenGL/Shader/cubeP3N3T2.frag");
+	shadowShader = Shader("./Shader/shadow.vs", "./Shader/shadow.frag");
+	glGenFramebuffers(1, &fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+	glGenTextures(1, &depthTex);
+	glBindTexture(GL_TEXTURE_2D, depthTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTex, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	CubeObj = Primitive::Cube(glm::vec3(-10.0f, 10.0f, -0.0f), 0.1f);
+	CubeObj = Primitive::Cube(glm::vec3(-5.0f, 4.0f, -5.0f), 0.1f);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 }
 
 void Render()
-{
-	glClearColor(0.0, 0.0, 0.0, 1.0);
+{	
+	shadowShader.Use();
+	glm::mat4 shadowProj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 100.0f);
+	glm::mat4 shadowView = glm::lookAt(CubeObj.m_position, glm::vec3(0.0f), glm::vec3(0.0,1.0,0.0f));
+	glm::mat4 shadowMat = shadowProj * shadowView;	
+	glUniformMatrix4fv(glGetUniformLocation(shadowShader.Program, "lightMat"), 1, GL_FALSE, glm::value_ptr(shadowMat));
+	
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glCullFace(GL_FRONT);
+	RenderScene(shadowShader);
+	glCullFace(GL_BACK);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, WIDTH, HEIGHT);	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
-
-	glm::mat4 proj = glm::perspective(90.0f, (GLfloat)WIDTH / HEIGHT, 0.1f, 100.0f);
+	glm::mat4 proj = glm::perspective(camera.Zoom, (GLfloat)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 	glm::mat4 view = camera.GetViewMatrix();
-	glm::mat4 modelFloor = glm::mat4(1.0f);
-	modelFloor = glm::translate(modelFloor, glm::vec3(0, 0, -10));
+	
 	floorShader.Use();
 	glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "proj"),1,GL_FALSE, glm::value_ptr(proj));
-	glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(modelFloor));
+	glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));	
 	glUniform3f(glGetUniformLocation(floorShader.Program, "LightPos"), CubeObj.m_position.x, CubeObj.m_position.y, CubeObj.m_position.z);
 	glUniform3f(glGetUniformLocation(floorShader.Program, "CameraPos"), camera.Position.x, camera.Position.y, camera.Position.z);
-	glBindVertexArray(floorVao);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindVertexArray(0);
+	glUniform1i(glGetUniformLocation(floorShader.Program, "shadowMap"), 0);
+	glUniformMatrix4fv(glGetUniformLocation(floorShader.Program, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(shadowMat));	
+	glActiveTexture(0);
+	glBindTexture(GL_TEXTURE_2D, depthTex);	
+	RenderScene(floorShader);
 
-	cubeShader.Use();
-	glm::mat4 modelCube = glm::mat4(1.0f);
-	modelCube = glm::translate(modelCube, glm::vec3(0, 2, 0));
-	glUniformMatrix4fv(glGetUniformLocation(cubeShader.Program, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
-	glUniformMatrix4fv(glGetUniformLocation(cubeShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	glUniformMatrix4fv(glGetUniformLocation(cubeShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(modelCube));
-	glUniform3f(glGetUniformLocation(cubeShader.Program, "LightPos"), CubeObj.m_position.x, CubeObj.m_position.y, CubeObj.m_position.z);
-	glUniform3f(glGetUniformLocation(cubeShader.Program, "CameraPos"), camera.Position.x, camera.Position.y, camera.Position.z);
-	glBindVertexArray(cubeVao);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	
-	glBindVertexArray(0);
 	defaultCubeShader.Use();
 	glUniformMatrix4fv(glGetUniformLocation(defaultCubeShader.Program, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
 	glUniformMatrix4fv(glGetUniformLocation(defaultCubeShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 	CubeObj.Draw(defaultCubeShader);
 
 	glfwSwapBuffers(window);
+}
+
+void RenderScene(Shader& shader)
+{
+	shader.Use();
+	glm::mat4 model = glm::mat4(1.0f);	
+	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glBindVertexArray(floorVao);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+
+	model = glm::mat4(1.0f);
+	model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
+	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glBindVertexArray(cubeVao);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+
+	model = glm::mat4(1.0f);
+	model = glm::translate(model, glm::vec3(2.0f, -0.5f, 1.0));
+	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glBindVertexArray(cubeVao);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+
+	model = glm::mat4(1.0f);
+	model = glm::translate(model, glm::vec3(-1.0f, -0.5f, 2.0));
+	model = glm::rotate(model, 60.0f, glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+	model = glm::scale(model, glm::vec3(0.5));
+	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glBindVertexArray(cubeVao);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
 }
