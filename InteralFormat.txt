@@ -1,0 +1,16 @@
+Texture Internal Formats
+Sometimes the first line of code you write is the most important. 
+                                    -- Stephen Johnson, NVIDIA Corporation
+While a tremendous amount of effort is generally put into creating artwork and optimizing the rendering code, often one of the most important steps of texture mapping is overlooked: texture downloads.
+Getting the most out of:
+glTexImage2D(target, lod, internalformat, width, height, border, format, type, data);
+means understanding the ramifications of each parameter. While most are straightforward, there seems to be considerable confusion surrounding the internalformat parameter.
+In OpenGL 1.0, the third parameter was called components and referred to the desired number of components in the internal texture. Legal values were 1,2,3,4. This doesn't have to match the raw data you supply; for example if you have RGBA data but don't care about alpha, you could specify (components = 3) and the GL would strip off the alpha channel and store just RGB.
+
+In OpenGL 1.1, the components parameter was given an expanded roll and renamed internalformat to reflect its new functionality. While it still accepts the original values, it now accepts named formats:GL_RGB, GL_RGBA, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_INTENSITY and GL_ALPHA. Note that there are now three different single-component texture formats, each with different behavior. Further, you can specify sized representations of these internalformats, e.g. GL_RGB5, GL_RGB8, GL_RGBA4, GL_RGBA5_A1, GL_RGBA8 (please see the reference for a complete list). This is a hint to the implementation, and indicates the desired color resolution of the texture.
+
+The importance of using sized internalformats cannot be understated. Many architectures support multiple internal texture formats, and the implementor must choose a default for the unsized internalformats. For maximum control over performance and quality, these hints must be employed. For example if you want to minimize texture storage and bandwidth requirements at the expense of visual quality, you should use GL_RGB5 or GL_RGBA4 internalformats. If you only need a single bit of alpha you can use GL_RGB5_A1 for increased color resolution. If you are willing to sacrifice some performance for improved visual quality, be sure to request GL_RGB8 or GL_RGBA8 internalformats. Otherwise you leave this decision in the hands of the person writing the driver, whose priorities may not match your own.
+
+There is no downside to using sized hints. If your requested size is unsupported, the implementation will use the closest supported size. If you are worried that you might not make the correct trade-off for all users and/or all architectures, give the user a control to make this choice.
+
+Please note that your choice of setting for internalformat is independent of your choice of type and format; even if you choose to store a texture at low resolution, you must still present the data using standard types and formats (e.g. four bytes per texel if the type/format is GL_UNSIGNED_BYTE, GL_RGBA).
