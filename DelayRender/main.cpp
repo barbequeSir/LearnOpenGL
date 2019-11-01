@@ -344,15 +344,13 @@ void Render()
 }
 
 void RenderScene()
-{
-	glCheckError();
+{	
 	glm::mat4 projectMat = glm::perspective(camera.Zoom, (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 	glm::mat4 viewMat = camera.GetViewMatrix();
 	glm::mat4 modelMat = glm::mat4(1.0);
 
 	glViewport(0, 0, WIDTH, HEIGHT);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	glCheckError();
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	shaderNanosuit->Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderNanosuit->Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectMat));
@@ -366,9 +364,8 @@ void RenderScene()
 		glUniformMatrix4fv(glGetUniformLocation(shaderNanosuit->Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
 		model->Draw(*shaderNanosuit);
 	}
-	glCheckError();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	//glViewport(WIDTH / 4, HEIGHT / 2, WIDTH / 2, HEIGHT / 2);	
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	shaderLightPass->Use();
 	glActiveTexture(GL_TEXTURE0);
@@ -376,8 +373,7 @@ void RenderScene()
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, tex2);
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, tex3);
-	glCheckError();
+	glBindTexture(GL_TEXTURE_2D, tex3);	
 	for (int i = 0; i < lightPositions.size(); i++)
 	{
 		glUniform3fv(glGetUniformLocation(shaderLightPass->Program, ("lights[" + std::to_string(i) + "].Position").c_str()), 1, &lightPositions[i][0]);
@@ -410,22 +406,24 @@ void RenderScene()
 		glUniformMatrix4fv(glGetUniformLocation(shaderLightBox->Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
 		objectCube->Draw(*shaderLightBox);
 	}	
-	/*
+	
+#pragma region MyRegion
 	glViewport(0, HEIGHT / 6, WIDTH / 4, HEIGHT / 3);
-	shaderPosition->Use();	
+	shaderPosition->Use();
+	modelMat = glm::mat4(1.0);
 	glUniformMatrix4fv(glGetUniformLocation(shaderPosition->Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectMat));
 	glUniformMatrix4fv(glGetUniformLocation(shaderPosition->Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
 	glUniformMatrix4fv(glGetUniformLocation(shaderPosition->Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
 	model->Draw(*shaderPosition);
 
-	glViewport( WIDTH*1/4, HEIGHT /6, WIDTH / 4, HEIGHT / 3);
+	glViewport(WIDTH * 1 / 4, HEIGHT / 6, WIDTH / 4, HEIGHT / 3);
 	shaderNormal->Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderNormal->Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectMat));
 	glUniformMatrix4fv(glGetUniformLocation(shaderNormal->Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
 	glUniformMatrix4fv(glGetUniformLocation(shaderNormal->Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
 	model->Draw(*shaderNormal);
 
-	glViewport(WIDTH *2 / 4, HEIGHT / 6, WIDTH / 4, HEIGHT / 3);
+	glViewport(WIDTH * 2 / 4, HEIGHT / 6, WIDTH / 4, HEIGHT / 3);
 	shaderDiffuse->Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderDiffuse->Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectMat));
 	glUniformMatrix4fv(glGetUniformLocation(shaderDiffuse->Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
@@ -437,7 +435,10 @@ void RenderScene()
 	glUniformMatrix4fv(glGetUniformLocation(shaderSpecular->Program, "projection"), 1, GL_FALSE, glm::value_ptr(projectMat));
 	glUniformMatrix4fv(glGetUniformLocation(shaderSpecular->Program, "view"), 1, GL_FALSE, glm::value_ptr(viewMat));
 	glUniformMatrix4fv(glGetUniformLocation(shaderSpecular->Program, "transform"), 1, GL_FALSE, glm::value_ptr(modelMat));
-	model->Draw(*shaderSpecular);*/
+	model->Draw(*shaderSpecular);
+#pragma endregion
+
+	
 }
 
 GLuint quadVAO = 0;
