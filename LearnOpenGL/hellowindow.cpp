@@ -143,6 +143,7 @@ int main()
 		lastFrame = currentFrame;
 		// Render
 		// Clear the colorbuffer
+		glViewport(0, 0, 1600, 1200);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);		
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);		
@@ -156,7 +157,7 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glm::mat4 trans = glm::mat4(1.0);		
 		trans = glm::rotate(trans, (GLfloat)glfwGetTime() * 1.0f, glm::vec3(0.0, 0.0, 1.0));
-		trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+		trans = glm::scale(trans, glm::vec3(2.0, 2.0, 2.0));
 		GLuint transformLoc = glGetUniformLocation(ourShader.Program, "transform");
 		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 		glActiveTexture(GL_TEXTURE0);
